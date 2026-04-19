@@ -1,4 +1,12 @@
 import { useState } from "react";
+import { z } from "zod";
+
+// Define validation schema
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email format"),
+  date: z.string().min(1, "Date is required")
+});
 
 function FormPage() {
   const [formData, setFormData] = useState({
@@ -7,6 +15,7 @@ function FormPage() {
     date: ""
   });
 
+  const [errors, setErrors] = useState({});
   const [responseData, setResponseData] = useState(null);
 
   const handleChange = (e) => {
@@ -18,6 +27,20 @@ function FormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate with Zod
+    const result = formSchema.safeParse(formData);
+
+    if (!result.success) {
+      const fieldErrors = {};
+      result.error.errors.forEach((err) => {
+        fieldErrors[err.path[0]] = err.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
 
     try {
       const response = await fetch("https://httpbin.org/post", {
@@ -48,8 +71,8 @@ function FormPage() {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            required
           />
+          {errors.name && <p style={{ color: "red" }}>{errors.name}</p>}
         </div>
 
         <div style={{ marginBottom: "15px" }}>
@@ -59,8 +82,8 @@ function FormPage() {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            required
           />
+          {errors.email && <p style={{ color: "red" }}>{errors.email}</p>}
         </div>
 
         <div style={{ marginBottom: "15px" }}>
@@ -70,14 +93,13 @@ function FormPage() {
             name="date"
             value={formData.date}
             onChange={handleChange}
-            required
           />
+          {errors.date && <p style={{ color: "red" }}>{errors.date}</p>}
         </div>
 
         <button type="submit">Submit</button>
       </form>
 
-      {/* Show response */}
       {responseData && (
         <div style={{ marginTop: "30px", textAlign: "left" }}>
           <h3>Response from server:</h3>
